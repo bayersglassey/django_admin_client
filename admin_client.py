@@ -61,22 +61,35 @@ class Client:
 
             default_data[name] = value
 
+        for elem in form.findAll("textarea"):
+            name = elem.get("name")
+            if name is None: continue
+
+            value = elem.text
+            default_data[name] = value
+
         for elem in form.findAll("select"):
             name = elem.get("name")
             if name is None: continue
 
             multi = "multiple" in elem.attrs
 
-            values = []
-            for option in elem.findAll("option"):
+            selected_values = []
+            options = elem.findAll("option")
+            for option in options:
                 if "selected" not in option.attrs: continue
                 value = option.get("value")
-                values.append(value)
+                selected_values.append(value)
 
             if multi:
-                default_data[name] = values
+                value = selected_values
+            elif len(selected_values):
+                value = selected_values[0]
+            elif len(options):
+                value = options[0].get("value")
             else:
-                default_data[name] = values[0] if len(values) else None
+                value = None
+            default_data[name] = value
 
         return default_data
 
