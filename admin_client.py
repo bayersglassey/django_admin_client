@@ -8,7 +8,14 @@ LOGIN_URL = "/admin/login/"
 USER_URL = "/admin/auth/user/"
 GROUP_URL = "/admin/auth/group/"
 
+
+# Some fields which aren't model fields, so need to be
+# filtered out of the dicts we generate
 CSRFTOKEN_FIELD = "csrfmiddlewaretoken"
+CHANGEFORM_FIELDS = [
+    CSRFTOKEN_FIELD,
+    "_addanother", "_continue", "_save",
+]
 
 
 class Client:
@@ -173,10 +180,14 @@ class Client:
 
     def get_object_data(self, soup):
         form = self.get_form(soup)
+        data = self.get_default_data(form)
 
-        # Probably good enough...
-        # We could scrub non-object fields from the default form data...
-        return self.get_default_data(form)
+        # Scrub fields which just belong to the changeform, not the model
+        for field in CHANGEFORM_FIELDS:
+            if field in data:
+                del data[field]
+
+        return data
 
     def get_object(self, url, id):
         change_url = self.get_change_url(url, id)
@@ -199,9 +210,49 @@ class Client:
         delete_url = self.get_delete_url(url, id)
         return self.post_form(delete_url)
 
+    def register_model(self, name, url):
+        # I'm not usually into Python magic, but in this case it's kind of fun.
+        # Usage:
+        #
+        #     # Assuming a model called Thing living in app "myapp":
+        #
+        #     client = Client()
+        #     client.register_model("thing", "/admin/myapp/thing/")
+        #
+        #     # Pick an existing thing
+        #     thing_ids = client.get_things()
+        #     thing_id = thing_ids[0]
+        #
+        #     # Examine it
+        #     thing_data = client.get_thing(thing_id)
+        #
+        #     # Etc...
+
+        def get_Xs():
+            return self.get_ids(url)
+
+        def get_X(id):
+            return self.get_object(url, id)
+
+        def add_X(data):
+            return self.add_object(url, data)
+
+        def change_X(id, data):
+            return self.change_object(url, id, data)
+
+        def delete_X(id):
+            return self.delete_object(url, id)
+
+        setattr(self, "get_{}s".format(name), get_Xs)
+        setattr(self, "get_{}".format(name), get_X)
+        setattr(self, "add_{}".format(name), add_X)
+        setattr(self, "change_{}".format(name), change_X)
+        setattr(self, "delete_{}".format(name), delete_X)
+
 
     ###########################################################################
     # HELPER METHODS FOR SPECIFIC MODELS
+    # (Can probably be replaced by register_model magic?..)
 
     def get_users(self):
         return self.get_ids(USER_URL)
@@ -218,9 +269,3 @@ class Client:
 
     def delete_user(self, id):
         return self.delete_object(USER_URL, id)
-
-    def get_groups(self):
-        return self.get_ids(GROUP_URL)
-
-    def get_group(self, id):
-        return self.get_object(GROUP_URL, id)

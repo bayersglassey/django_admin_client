@@ -53,6 +53,32 @@ Then in a Python shell,
     # Delete a user:
     c.delete_user(user_id)
 
+    # List the ids of all users:
+    c.get_users()
 
-Currently only the User model is directly supported, and even that's a bit hacky.
-For instance, to get the user's data, we're just parsing the change form with beautiful soup.
+
+There's no particular reason you can't use this for models other than User.
+A magic register_model method has been provided to get you started:
+
+     # Assuming a model called Thing living in app "myapp"
+
+     c = Client()
+     c.register_model("thing", "/admin/myapp/thing/")
+
+     # Pick an existing thing
+     thing_ids = c.get_things()
+     thing_id = thing_ids[0]
+
+     # Examine it
+     thing_data = c.get_thing(thing_id)
+
+     # Etc...
+
+
+For a practical example, this should work out of the box:
+
+    c = Client()
+    c.register_model("group", "/admin/auth/group/")
+
+
+Have fun!
