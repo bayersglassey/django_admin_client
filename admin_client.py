@@ -127,7 +127,10 @@ class Client:
         updated_data.update(data or {})
         encoded_data = self.encode_data(updated_data)
 
-        resp = self.session.post(url, encoded_data)
+        headers = {
+            "Referer": url,
+        }
+        resp = self.session.post(url, encoded_data, headers=headers)
 
         if resp.status_code != 200:
             raise Exception("Status wasn't 200!", resp)
