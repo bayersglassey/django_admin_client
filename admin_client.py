@@ -20,10 +20,11 @@ CHANGEFORM_FIELDS = [
 
 class Client:
 
-    def __init__(self, base_url, admin_username, admin_password):
+    def __init__(self, base_url, admin_username, admin_password, lockdown_password=None):
         self.base_url = base_url
         self.admin_username = admin_username
         self.admin_password = admin_password
+        self.lockdown_password = lockdown_password
         self.session = requests.session()
 
     def expand_url(self, url, **kwargs):
@@ -121,6 +122,23 @@ class Client:
     def post_form(self, url, data=None, select=None):
         resp = self.session.get(url)
         soup = self.get_soup(resp)
+        lockdown = soup.select("#lockdown")
+        if lockdown:
+            print('Detected lockdown')
+            form = self.get_form(soup)
+            updated_data = self.get_default_data(form)
+            updated_data.update({'password': self.lockdown_password})
+            encoded_data = self.encode_data(updated_data)
+            resp = self.session.post(url, encoded_data)
+
+            if resp.status_code != 200:
+                raise Exception("Lockdown status wasn't 200!", resp)
+
+            resp = self.session.get(url)
+            soup = self.get_soup(resp)
+            lockdown = soup.select("#lockdown")
+            assert not lockdown, lockdown
+
         form = self.get_form(soup, select)
 
         updated_data = self.get_default_data(form)
