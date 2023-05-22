@@ -8,7 +8,7 @@ ipython-genutils==0.2.0
 pexpect==4.8.0
 pickleshare==0.7.5
 ptyprocess==0.6.0
-requests==2.22.0
+requests==2.31.0
 simplegeneric==0.8.1
 six==1.14.0
 soupsieve==1.9.5
